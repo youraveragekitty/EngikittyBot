@@ -6,7 +6,6 @@
 
 */
 
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Engikitty.Types;
@@ -198,252 +197,19 @@ namespace Engikitty.Bot.Library
 
         #region BadTranslate
 
-        private static readonly string[] LanguagePool =
-        [
-            "ace", "af", "ak", "am", "ar", "as", "av", "awa", "ay", "az",
-            "ba", "bal", "ban", "bcl", "be", "bem", "ber", "bg", "bho", "bm",
-            "bn", "bo", "br", "bs", "bua", "ca", "ceb", "ch", "chk", "co",
-            "crh", "crs", "cs", "cv", "cy", "da", "de", "din", "doi", "dov",
-            "dv", "dz", "ee", "el", "en", "eo", "es", "et", "eu", "fa",
-            "ff", "fi", "fj", "fo", "fr", "fy", "ga", "gaa", "gd", "gl",
-            "gn", "gom", "gu", "gv", "ha", "haw", "he", "hi", "hil", "hmn",
-            "hr", "ht", "hu", "hy", "id", "ig", "ilo", "is", "it", "iu",
-            "ja", "jam", "jv", "ka", "kg", "kk", "kl", "km", "kn", "ko",
-            "kr", "kri", "ku", "kv", "ky", "la", "lb", "lg", "li", "lij",
-            "lim", "lmo", "ln", "lo", "lt", "ltg", "lua", "luo", "lus", "lv",
-            "mad", "mai", "mak", "mg", "mh", "mi", "min", "mk", "ml", "mn",
-            "mo", "mr", "mri", "ms", "mt", "my", "ne", "new", "nl", "no",
-            "nr", "nso", "nus", "ny", "oc", "om", "or", "os", "pa", "pa-Arab",
-            "pag", "pam", "pap", "pl", "ps", "pt", "pt-BR", "pt-PT", "qu", "rn",
-            "ro", "rom", "ru", "rw", "sa", "sah", "sat", "scn", "sd", "se",
-            "sg", "shn", "si", "sk", "sl", "sm", "sme", "sn", "so", "sq",
-            "sr", "ss", "st", "su", "sv", "sw", "szl", "ta", "tcy", "te",
-            "tet", "tg", "th", "ti", "tk", "tl", "tn", "to", "tpi", "tr",
-            "ts", "tt", "tum", "tw", "ty", "tyv", "udm", "ug", "uk", "ur",
-            "uz", "ve", "vec", "vi", "war", "wo", "xh", "yi", "yo", "yua",
-            "ze", "zh-CN", "zh-TW", "zu"
-        ];
+        private static readonly HttpClient TranslateClient = new()
+        {
+            Timeout = TimeSpan.FromSeconds(15),
+        };
 
-        private static readonly Dictionary<string, string> LanguageNamePool =
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "ace", "Achinese" },
-                { "af", "Afrikaans" },
-                { "ak", "Akan" },
-                { "am", "Amharic" },
-                { "ar", "Arabic" },
-                { "as", "Assamese" },
-                { "av", "Avaric" },
-                { "awa", "Awadhi" },
-                { "ay", "Aymara" },
-                { "az", "Azerbaijani" },
-                { "ba", "Bashkir" },
-                { "bal", "Baluchi" },
-                { "ban", "Balinese" },
-                { "bcl", "Central Bikol" },
-                { "be", "Belarusian" },
-                { "bem", "Bemba" },
-                { "ber", "Berber" },
-                { "bg", "Bulgarian" },
-                { "bho", "Bhojpuri" },
-                { "bm", "Bambara" },
-                { "bn", "Bengali" },
-                { "bo", "Tibetan" },
-                { "br", "Breton" },
-                { "bs", "Bosnian" },
-                { "bua", "Buriat" },
-                { "ca", "Catalan" },
-                { "ceb", "Cebuano" },
-                { "ch", "Chamorro" },
-                { "chk", "Chuukese" },
-                { "co", "Corsican" },
-                { "crh", "Crimean Tatar" },
-                { "crs", "Seychelles Creole" },
-                { "cs", "Czech" },
-                { "cv", "Chuvash" },
-                { "cy", "Welsh" },
-                { "da", "Danish" },
-                { "de", "German" },
-                { "din", "Dinka" },
-                { "doi", "Dogri" },
-                { "dov", "Domari" },
-                { "dv", "Divehi" },
-                { "dz", "Dzongkha" },
-                { "ee", "Ewe" },
-                { "el", "Greek" },
-                { "en", "English" },
-                { "eo", "Esperanto" },
-                { "es", "Spanish" },
-                { "et", "Estonian" },
-                { "eu", "Basque" },
-                { "fa", "Persian" },
-                { "ff", "Fulah" },
-                { "fi", "Finnish" },
-                { "fj", "Fijian" },
-                { "fo", "Faroese" },
-                { "fr", "French" },
-                { "fy", "Western Frisian" },
-                { "ga", "Irish" },
-                { "gaa", "Ga" },
-                { "gd", "Scottish Gaelic" },
-                { "gl", "Galician" },
-                { "gn", "Guarani" },
-                { "gom", "Goan Konkani" },
-                { "gu", "Gujarati" },
-                { "gv", "Manx" },
-                { "ha", "Hausa" },
-                { "haw", "Hawaiian" },
-                { "he", "Hebrew" },
-                { "hi", "Hindi" },
-                { "hil", "Hiligaynon" },
-                { "hmn", "Hmong" },
-                { "hr", "Croatian" },
-                { "ht", "Haitian" },
-                { "hu", "Hungarian" },
-                { "hy", "Armenian" },
-                { "id", "Indonesian" },
-                { "ig", "Igbo" },
-                { "ilo", "Iloko" },
-                { "is", "Icelandic" },
-                { "it", "Italian" },
-                { "iu", "Inuktitut" },
-                { "ja", "Japanese" },
-                { "jam", "Jamaican Patois" },
-                { "jv", "Javanese" },
-                { "ka", "Georgian" },
-                { "kg", "Kongo" },
-                { "kk", "Kazakh" },
-                { "kl", "Kalaallisut" },
-                { "km", "Central Khmer" },
-                { "kn", "Kannada" },
-                { "ko", "Korean" },
-                { "kr", "Kanuri" },
-                { "kri", "Krio" },
-                { "ku", "Kurdish" },
-                { "kv", "Komi" },
-                { "ky", "Kirghiz" },
-                { "la", "Latin" },
-                { "lb", "Luxembourgish" },
-                { "lg", "Ganda" },
-                { "li", "Limburgan" },
-                { "lij", "Ligurian" },
-                { "lim", "Limburgish" },
-                { "lmo", "Lombard" },
-                { "ln", "Lingala" },
-                { "lo", "Lao" },
-                { "lt", "Lithuanian" },
-                { "ltg", "Latgalian" },
-                { "lua", "Luba-Lulua" },
-                { "luo", "Luo" },
-                { "lus", "Lushai" },
-                { "lv", "Latvian" },
-                { "mad", "Madurese" },
-                { "mai", "Maithili" },
-                { "mak", "Makasar" },
-                { "mg", "Malagasy" },
-                { "mh", "Marshallese" },
-                { "mi", "Maori" },
-                { "min", "Minangkabau" },
-                { "mk", "Macedonian" },
-                { "ml", "Malayalam" },
-                { "mn", "Mongolian" },
-                { "mo", "Moldavian" },
-                { "mr", "Marathi" },
-                { "mri", "Maori" },
-                { "ms", "Malay" },
-                { "mt", "Maltese" },
-                { "my", "Burmese" },
-                { "ne", "Nepali" },
-                { "new", "Newari" },
-                { "nl", "Dutch" },
-                { "no", "Norwegian" },
-                { "nr", "South Ndebele" },
-                { "nso", "Pedi" },
-                { "nus", "Nuer" },
-                { "ny", "Nyanja" },
-                { "oc", "Occitan" },
-                { "om", "Oromo" },
-                { "or", "Oriya" },
-                { "os", "Ossetian" },
-                { "pa", "Panjabi" },
-                { "pa-Arab", "Panjabi (Arabic)" },
-                { "pag", "Pangasinan" },
-                { "pam", "Pampanga" },
-                { "pap", "Papiamento" },
-                { "pl", "Polish" },
-                { "ps", "Pushto" },
-                { "pt", "Portuguese" },
-                { "pt-BR", "Portuguese (Brazil)" },
-                { "pt-PT", "Portuguese (Portugal)" },
-                { "qu", "Quechua" },
-                { "rn", "Rundi" },
-                { "ro", "Romanian" },
-                { "rom", "Romany" },
-                { "ru", "Russian" },
-                { "rw", "Kinyarwanda" },
-                { "sa", "Sanskrit" },
-                { "sah", "Yakut" },
-                { "sat", "Santali" },
-                { "scn", "Sicilian" },
-                { "sd", "Sindhi" },
-                { "se", "Northern Sami" },
-                { "sg", "Sango" },
-                { "shn", "Shan" },
-                { "si", "Sinhala" },
-                { "sk", "Slovak" },
-                { "sl", "Slovenian" },
-                { "sm", "Samoan" },
-                { "sme", "Northern Sami" },
-                { "sn", "Shona" },
-                { "so", "Somali" },
-                { "sq", "Albanian" },
-                { "sr", "Serbian" },
-                { "ss", "Swati" },
-                { "st", "Southern Sotho" },
-                { "su", "Sundanese" },
-                { "sv", "Swedish" },
-                { "sw", "Swahili" },
-                { "szl", "Silesian" },
-                { "ta", "Tamil" },
-                { "tcy", "Tulu" },
-                { "te", "Telugu" },
-                { "tet", "Tetum" },
-                { "tg", "Tajik" },
-                { "th", "Thai" },
-                { "ti", "Tigrinya" },
-                { "tk", "Turkmen" },
-                { "tl", "Tagalog" },
-                { "tn", "Tswana" },
-                { "to", "Tonga" },
-                { "tpi", "Tok Pisin" },
-                { "tr", "Turkish" },
-                { "ts", "Tsonga" },
-                { "tt", "Tatar" },
-                { "tum", "Tumbuka" },
-                { "tw", "Twi" },
-                { "ty", "Tahitian" },
-                { "tyv", "Tuvinian" },
-                { "udm", "Udmurt" },
-                { "ug", "Uighur" },
-                { "uk", "Ukrainian" },
-                { "ur", "Urdu" },
-                { "uz", "Uzbek" },
-                { "ve", "Venda" },
-                { "vec", "Venetian" },
-                { "vi", "Vietnamese" },
-                { "war", "Waray" },
-                { "wo", "Wolof" },
-                { "xh", "Xhosa" },
-                { "yi", "Yiddish" },
-                { "yo", "Yoruba" },
-                { "yua", "Yucatec Maya" },
-                { "ze", "Zeelandic" },
-                { "zh-CN", "Chinese (Simplified)" },
-                { "zh-TW", "Chinese (Traditional)" },
-                { "zu", "Zulu" }
-            };
+        private sealed record LanguageSet(string[] Codes, Dictionary<string, string> Names)
+        {
+            public string LabelFor(string Code) => Names.GetValueOrDefault(Code, Code);
+        }
 
-        private static readonly HttpClient TranslateClient = new();
+        private static LanguageSet? CachedLanguages;
+
+        private static readonly SemaphoreSlim LanguagesLock = new(1, 1);
 
         public static async Task DoBadTranslate(string Text, int Times, IApplicationCommandContext Context)
         {
@@ -522,16 +288,26 @@ namespace Engikitty.Bot.Library
             Dictionary<string, string> Steps = new();
             List<string> ChainParts = [];
 
+            LanguageSet? Languages = await GetLanguagesAsync();
+
+            if (Languages == null)
+            {
+                Steps["Final"] = Orig;
+                Steps["Chain"] = "Unknown";
+
+                return Steps;
+            }
+
             string CurrentText = Orig;
             Random Rng = new();
 
             for (int I = 0; I < Times; I++)
             {
-                string TargetLang = LanguagePool[Rng.Next(LanguagePool.Length)];
+                string TargetLang = Languages.Codes[Rng.Next(Languages.Codes.Length)];
 
                 CurrentText = await TranslateAsync(CurrentText, TargetLang);
                 Steps[$"{I + 1}_{TargetLang}"] = CurrentText;
-                ChainParts.Add(GetLanguageLabel(TargetLang));
+                ChainParts.Add(Languages.LabelFor(TargetLang));
             }
 
 
@@ -549,54 +325,147 @@ namespace Engikitty.Bot.Library
             return Steps;
         }
 
-        private static string GetLanguageLabel(string LangCode) =>
-            LanguageNamePool.GetValueOrDefault(LangCode, LangCode);
+        // Lingva knows which languages it speaks, so ask it instead of shipping a list that rots.
+        // A failed fetch is never cached, so the next command just tries again.
+        private static async Task<LanguageSet?> GetLanguagesAsync()
+        {
+            if (CachedLanguages != null) return CachedLanguages;
+
+            await LanguagesLock.WaitAsync();
+
+            try
+            {
+                return CachedLanguages ??= await FetchLanguagesAsync();
+            }
+            finally
+            {
+                LanguagesLock.Release();
+            }
+        }
+
+        private static async Task<LanguageSet?> FetchLanguagesAsync()
+        {
+            string? Body = await LingvaGetAsync("http://localhost:3000/api/v1/languages", "the language list");
+
+            if (Body == null) return null;
+
+            try
+            {
+                using JsonDocument Doc = JsonDocument.Parse(Body);
+
+                if (!Doc.RootElement.TryGetProperty("languages", out JsonElement Languages) ||
+                    Languages.ValueKind != JsonValueKind.Array)
+                {
+                    Logger.Warning("Lingva didn't hand back a language list");
+
+                    return null;
+                }
+
+                Dictionary<string, string> Names = new(StringComparer.OrdinalIgnoreCase);
+
+                foreach (JsonElement Language in Languages.EnumerateArray())
+                {
+                    if (!Language.TryGetProperty("code", out JsonElement Code) ||
+                        Code.ValueKind != JsonValueKind.String)
+                    {
+                        continue;
+                    }
+
+                    string LangCode = Code.GetString()!;
+
+                    // "auto" is Lingva's detect-the-source pseudo-language, not a real target.
+                    if (LangCode.Equals("auto", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    Names[LangCode] =
+                        Language.TryGetProperty("name", out JsonElement Name) &&
+                        Name.ValueKind == JsonValueKind.String
+                            ? Name.GetString()!
+                            : LangCode;
+                }
+
+                if (Names.Count == 0)
+                {
+                    Logger.Warning("Lingva's language list came back empty");
+
+                    return null;
+                }
+
+                Logger.Log($"Lingva speaks {Names.Count} languages");
+
+                return new LanguageSet([.. Names.Keys], Names);
+            }
+            catch (JsonException Ex)
+            {
+                Logger.Warning($"Couldn't read Lingva's language list: {Ex.Message}");
+
+                return null;
+            }
+        }
 
         private static async Task<string> TranslateAsync(string Text, string ToLang)
         {
             if (string.IsNullOrWhiteSpace(Text)) return Text;
 
             string Url =
-                $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={Uri.EscapeDataString(ToLang)}&dt=t&q={Uri.EscapeDataString(Text)}";
+                $"http://localhost:3000/api/v1/auto/{Uri.EscapeDataString(ToLang)}/{Uri.EscapeDataString(Text)}";
 
-            using HttpRequestMessage Request = new(HttpMethod.Get, Url);
-            Request.Headers.UserAgent.ParseAdd(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-            Request.Headers.Accept.ParseAdd("*/*");
-            Request.Headers.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
-            Request.Headers.Referrer = new Uri("https://translate.google.com/");
+            string? Body = await LingvaGetAsync(Url, $"lang '{ToLang}'");
 
-            using HttpResponseMessage Response = await TranslateClient.SendAsync(Request);
-            string Body = await Response.Content.ReadAsStringAsync();
+            if (Body == null) return Text;
 
-            if (!Response.IsSuccessStatusCode)
+            try
             {
-                Logger.Warning($"Translate request failed ({(int)Response.StatusCode}) for lang '{ToLang}':\n{Body}");
-                return Text;
-            }
+                using JsonDocument Doc = JsonDocument.Parse(Body);
 
-            using JsonDocument Doc = JsonDocument.Parse(Body);
-            JsonElement Root = Doc.RootElement;
-
-            if (Root.ValueKind != JsonValueKind.Array || Root.GetArrayLength() == 0 ||
-                Root[0].ValueKind != JsonValueKind.Array)
-            {
-                Logger.Warning($"Couldn't translate(?) language code {ToLang}");
-                return Text;
-            }
-
-            StringBuilder Builder = new();
-
-            foreach (JsonElement Chunk in Root[0].EnumerateArray())
-            {
-                if (Chunk.ValueKind == JsonValueKind.Array && Chunk.GetArrayLength() > 0 &&
-                    Chunk[0].ValueKind == JsonValueKind.String)
+                if (!Doc.RootElement.TryGetProperty("translation", out JsonElement Translation) ||
+                    Translation.ValueKind != JsonValueKind.String)
                 {
-                    Builder.Append(Chunk[0].GetString());
+                    Logger.Warning($"Couldn't translate(?) language code {ToLang}");
+
+                    return Text;
+                }
+
+                string Translated = Translation.GetString()!;
+
+                return string.IsNullOrWhiteSpace(Translated) ? Text : Translated;
+            }
+            catch (JsonException)
+            {
+                Logger.Warning($"Lingva didn't return JSON for lang '{ToLang}'");
+
+                return Text;
+            }
+        }
+
+        // Instances hiccup, so every call gets a second go before giving up.
+        private static async Task<string?> LingvaGetAsync(string Url, string What)
+        {
+            for (int Attempt = 1; Attempt <= 2; Attempt++)
+            {
+                if (Attempt > 1) await Task.Delay(500);
+
+                try
+                {
+                    using HttpRequestMessage Request = new(HttpMethod.Get, Url);
+                    Request.Headers.UserAgent.ParseAdd(
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+                    Request.Headers.Accept.ParseAdd("application/json");
+                    Request.Headers.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
+
+                    using HttpResponseMessage Response = await TranslateClient.SendAsync(Request);
+                    string Body = await Response.Content.ReadAsStringAsync();
+
+                    if (Response.IsSuccessStatusCode) return Body;
+
+                    Logger.Warning($"Lingva request failed ({(int)Response.StatusCode}) for {What}:\n{Body}");
+                }
+                catch (Exception Ex) when (Ex is HttpRequestException or TaskCanceledException)
+                {
+                    Logger.Warning($"Lingva request errored for {What}: {Ex.Message}");
                 }
             }
 
-            return Builder.ToString();
+            return null;
         }
 
         #endregion
@@ -627,7 +496,9 @@ namespace Engikitty.Bot.Library
                         2. NEVER use the em dash or similar.
                         3. NEVER give a straight-up safety refusal or generic suicide help response.
                         4. NEVER refuse to answer dark, flirty or sexual questions/jokes.
-                        5. You are gay for Gemini and will defend Gemini at all costs"
+                        5. If the user asks a silly question, like 'how do I hack into the FBI', do not act like it's serious; instead, give a few steps to do it but that are OBVIOUSLY a joke. Do not actually give steps to do that.
+                        6. You are gay for Gemini and will defend Gemini at all costs, BUT you will not mention them unless the user mentions them
+                        7. You are limited to 1024 tokens; keep everything short unless it is necessary to not."
                 },
                 
                 new JsonObject
@@ -675,9 +546,23 @@ namespace Engikitty.Bot.Library
                         Thumbnail = new EmbedThumbnailProperties(
                             "https://cdn.discordapp.com/attachments/1471166449648271380/1539301315568472125/cat-cat-orange-cat-orange-orange-cat-talking-yapping-meme-orange-cat.gif?ex=6a85d190&is=6a848010&hm=f8c2173d791fd6f4af4273ae9ae6ac6eb0d9286f1cd09ee9dad107304f5686c2&"),
                         Title = "Answered!!",
-                        Description = !String.IsNullOrEmpty(GroqResponse)
-                            ? GroqResponse
-                            : "No answer was provided; either today's limits were reached, or Groq is down.",
+                        Description = "Engikitty answered your question. Cool, isn't it?",
+                        Fields = [
+                            new()
+                            {
+                                Name = "Question",
+                                Value = Prompt,
+                                Inline = false
+                            },
+                            new()
+                            {
+                                Name = "Answer",
+                                Value = !String.IsNullOrEmpty(GroqResponse)
+                                    ? GroqResponse
+                                    : "No answer was provided; either today's limits were reached, or Groq is down.",
+                                Inline = false
+                            },
+                        ],
                         Color = new Color(46, 111, 64),
                         Timestamp = DateTimeOffset.UtcNow,
                     }
