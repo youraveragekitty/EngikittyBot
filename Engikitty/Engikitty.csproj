@@ -26,5 +26,9 @@
         <PackageReference Include="Microsoft.Data.Sqlite" Version="*" />
         <PackageReference Include="GroqApiLibrary" Version="*" />
     </ItemGroup>
+    
+    <ItemGroup>
+        <Reference Include="LingvaSharp.dll" HintPath="LingvaSharp.dll" />
+    </ItemGroup>
 
 </Project>

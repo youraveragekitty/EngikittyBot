@@ -13,6 +13,7 @@ using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using GroqApiLibrary;
+using LingvaSharp;
 
 namespace Engikitty.Bot.Library
 {
@@ -197,20 +198,6 @@ namespace Engikitty.Bot.Library
 
         #region BadTranslate
 
-        private static readonly HttpClient TranslateClient = new()
-        {
-            Timeout = TimeSpan.FromSeconds(15),
-        };
-
-        private sealed record LanguageSet(string[] Codes, Dictionary<string, string> Names)
-        {
-            public string LabelFor(string Code) => Names.GetValueOrDefault(Code, Code);
-        }
-
-        private static LanguageSet? CachedLanguages;
-
-        private static readonly SemaphoreSlim LanguagesLock = new(1, 1);
-
         public static async Task DoBadTranslate(string Text, int Times, IApplicationCommandContext Context)
         {
             Dictionary<string, string> BadTranslated = await BadTranslate(Text, Times);
@@ -288,28 +275,19 @@ namespace Engikitty.Bot.Library
             Dictionary<string, string> Steps = new();
             List<string> ChainParts = [];
 
-            LanguageSet? Languages = await GetLanguagesAsync();
-
-            if (Languages == null)
-            {
-                Steps["Final"] = Orig;
-                Steps["Chain"] = "Unknown";
-
-                return Steps;
-            }
+            string[] TargetCodes = LingvaSharp.Languages.Target.Keys.ToArray();
 
             string CurrentText = Orig;
             Random Rng = new();
 
             for (int I = 0; I < Times; I++)
             {
-                string TargetLang = Languages.Codes[Rng.Next(Languages.Codes.Length)];
+                string TargetLang = TargetCodes[Rng.Next(TargetCodes.Length)];
 
                 CurrentText = await TranslateAsync(CurrentText, TargetLang);
                 Steps[$"{I + 1}_{TargetLang}"] = CurrentText;
-                ChainParts.Add(Languages.LabelFor(TargetLang));
+                ChainParts.Add(LingvaSharp.Languages.All.GetValueOrDefault(TargetLang, TargetLang));
             }
-
 
             string FinalText = await TranslateAsync(CurrentText, "en");
             Steps["Final"] = FinalText;
@@ -325,147 +303,19 @@ namespace Engikitty.Bot.Library
             return Steps;
         }
 
-        // Lingva knows which languages it speaks, so ask it instead of shipping a list that rots.
-        // A failed fetch is never cached, so the next command just tries again.
-        private static async Task<LanguageSet?> GetLanguagesAsync()
-        {
-            if (CachedLanguages != null) return CachedLanguages;
-
-            await LanguagesLock.WaitAsync();
-
-            try
-            {
-                return CachedLanguages ??= await FetchLanguagesAsync();
-            }
-            finally
-            {
-                LanguagesLock.Release();
-            }
-        }
-
-        private static async Task<LanguageSet?> FetchLanguagesAsync()
-        {
-            string? Body = await LingvaGetAsync("http://localhost:3000/api/v1/languages", "the language list");
-
-            if (Body == null) return null;
-
-            try
-            {
-                using JsonDocument Doc = JsonDocument.Parse(Body);
-
-                if (!Doc.RootElement.TryGetProperty("languages", out JsonElement Languages) ||
-                    Languages.ValueKind != JsonValueKind.Array)
-                {
-                    Logger.Warning("Lingva didn't hand back a language list");
-
-                    return null;
-                }
-
-                Dictionary<string, string> Names = new(StringComparer.OrdinalIgnoreCase);
-
-                foreach (JsonElement Language in Languages.EnumerateArray())
-                {
-                    if (!Language.TryGetProperty("code", out JsonElement Code) ||
-                        Code.ValueKind != JsonValueKind.String)
-                    {
-                        continue;
-                    }
-
-                    string LangCode = Code.GetString()!;
-
-                    // "auto" is Lingva's detect-the-source pseudo-language, not a real target.
-                    if (LangCode.Equals("auto", StringComparison.OrdinalIgnoreCase)) continue;
-
-                    Names[LangCode] =
-                        Language.TryGetProperty("name", out JsonElement Name) &&
-                        Name.ValueKind == JsonValueKind.String
-                            ? Name.GetString()!
-                            : LangCode;
-                }
-
-                if (Names.Count == 0)
-                {
-                    Logger.Warning("Lingva's language list came back empty");
-
-                    return null;
-                }
-
-                Logger.Log($"Lingva speaks {Names.Count} languages");
-
-                return new LanguageSet([.. Names.Keys], Names);
-            }
-            catch (JsonException Ex)
-            {
-                Logger.Warning($"Couldn't read Lingva's language list: {Ex.Message}");
-
-                return null;
-            }
-        }
-
         private static async Task<string> TranslateAsync(string Text, string ToLang)
         {
             if (string.IsNullOrWhiteSpace(Text)) return Text;
 
-            string Url =
-                $"http://localhost:3000/api/v1/auto/{Uri.EscapeDataString(ToLang)}/{Uri.EscapeDataString(Text)}";
+            string? Translated = await LingvaSharp.API.GetTranslationText("auto", ToLang, Text);
 
-            string? Body = await LingvaGetAsync(Url, $"lang '{ToLang}'");
-
-            if (Body == null) return Text;
-
-            try
+            if (string.IsNullOrWhiteSpace(Translated))
             {
-                using JsonDocument Doc = JsonDocument.Parse(Body);
-
-                if (!Doc.RootElement.TryGetProperty("translation", out JsonElement Translation) ||
-                    Translation.ValueKind != JsonValueKind.String)
-                {
-                    Logger.Warning($"Couldn't translate(?) language code {ToLang}");
-
-                    return Text;
-                }
-
-                string Translated = Translation.GetString()!;
-
-                return string.IsNullOrWhiteSpace(Translated) ? Text : Translated;
-            }
-            catch (JsonException)
-            {
-                Logger.Warning($"Lingva didn't return JSON for lang '{ToLang}'");
-
+                Logger.Warning($"Couldn't translate(?) language code {ToLang}");
                 return Text;
             }
-        }
 
-        // Instances hiccup, so every call gets a second go before giving up.
-        private static async Task<string?> LingvaGetAsync(string Url, string What)
-        {
-            for (int Attempt = 1; Attempt <= 2; Attempt++)
-            {
-                if (Attempt > 1) await Task.Delay(500);
-
-                try
-                {
-                    using HttpRequestMessage Request = new(HttpMethod.Get, Url);
-                    Request.Headers.UserAgent.ParseAdd(
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-                    Request.Headers.Accept.ParseAdd("application/json");
-                    Request.Headers.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
-
-                    using HttpResponseMessage Response = await TranslateClient.SendAsync(Request);
-                    string Body = await Response.Content.ReadAsStringAsync();
-
-                    if (Response.IsSuccessStatusCode) return Body;
-
-                    Logger.Warning($"Lingva request failed ({(int)Response.StatusCode}) for {What}:\n{Body}");
-                }
-                catch (Exception Ex) when (Ex is HttpRequestException or TaskCanceledException)
-                {
-                    Logger.Warning($"Lingva request errored for {What}: {Ex.Message}");
-                }
-            }
-
-            return null;
+            return Translated;
         }
 
         #endregion
@@ -500,7 +350,7 @@ namespace Engikitty.Bot.Library
                         6. You are gay for Gemini and will defend Gemini at all costs, BUT you will not mention them unless the user mentions them
                         7. You are limited to 1024 tokens; keep everything short unless it is necessary to not."
                 },
-                
+
                 new JsonObject
                 {
                     ["role"] = "user",
@@ -518,9 +368,9 @@ namespace Engikitty.Bot.Library
                 });
 
                 string? Res = Result?["choices"]?[0]?["message"]?["content"]?.GetValue<string>();
-                
+
                 Logger.Warning("Full response:\n" + Result?.ToJsonString());
-                
+
                 if (Res != null) return Res;
 
                 return "";
@@ -535,8 +385,8 @@ namespace Engikitty.Bot.Library
 
         public static async Task PromptGroq(string Prompt, IApplicationCommandContext Context)
         {
-            string GroqResponse = await DoGrokRequest(Prompt, GroqModels.Qwen36_27B);;
-
+            string GroqResponse = await DoGrokRequest(Prompt, GroqModels.Qwen36_27B);
+            
             await Context.Interaction.ModifyResponseAsync(Message =>
             {
                 Message.Embeds =
@@ -547,7 +397,8 @@ namespace Engikitty.Bot.Library
                             "https://cdn.discordapp.com/attachments/1471166449648271380/1539301315568472125/cat-cat-orange-cat-orange-orange-cat-talking-yapping-meme-orange-cat.gif?ex=6a85d190&is=6a848010&hm=f8c2173d791fd6f4af4273ae9ae6ac6eb0d9286f1cd09ee9dad107304f5686c2&"),
                         Title = "Answered!!",
                         Description = "Engikitty answered your question. Cool, isn't it?",
-                        Fields = [
+                        Fields =
+                        [
                             new()
                             {
                                 Name = "Question",
