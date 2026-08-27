@@ -28,7 +28,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <Reference Include="LingvaSharp.dll" HintPath="LingvaSharp.dll" />
+        <Reference Include="LingvaSharp.dll" HintPath="./Deps/LingvaSharp.dll" />
     </ItemGroup>
 
 </Project>
