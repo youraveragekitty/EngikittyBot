@@ -15,8 +15,11 @@ namespace Engikitty.Commands
     /// <summary>
     /// Command module for every "fun" command
     /// </summary>
-    [SlashCommand("fun", "A lot of stuff for fun, probably?",
-        Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel])]
+    [SlashCommand(
+        "fun", "A lot of stuff for fun, probably?",
+        Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel],
+        IntegrationTypes = [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall]
+    )]
     public class FunModule : ApplicationCommandModule<ApplicationCommandContext>
     {
         /// <summary>

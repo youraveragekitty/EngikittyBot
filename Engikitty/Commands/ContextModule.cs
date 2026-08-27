@@ -21,8 +21,11 @@ namespace Engikitty.Commands
         /// Bad-translates text 5 times
         /// </summary>
         /// <param name="Msg">Message used to extract content</param>
-        [MessageCommand("Bad Translate (5 times)",
-            Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel])]
+        [MessageCommand(
+            "Bad Translate (5 times)",
+            Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel],
+            IntegrationTypes = [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall]
+        )]
         public async Task BadTranslate5(RestMessage Msg)
         {
             await Bot.Library.Commands.DoMessageBadTranslate(Msg.Content, 5, Context);
@@ -32,8 +35,11 @@ namespace Engikitty.Commands
         /// Bad-translates text 10 times
         /// </summary>
         /// <param name="Msg">Message used to extract content</param>
-        [MessageCommand("Bad Translate (10 times)",
-            Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel])]
+        [MessageCommand(
+            "Bad Translate (10 times)",
+            Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel],
+            IntegrationTypes = [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall]
+        )]
         public async Task BadTranslate10(RestMessage Msg)
         {
             await Bot.Library.Commands.DoMessageBadTranslate(Msg.Content, 10, Context);
@@ -43,15 +49,21 @@ namespace Engikitty.Commands
         /// Bad-translates text 20 times
         /// </summary>
         /// <param name="Msg">Message used to extract content</param>
-        [MessageCommand("Bad Translate (20 times)",
-            Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel])]
+        [MessageCommand(
+            "Bad Translate (20 times)",
+            Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel],
+            IntegrationTypes = [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall]
+        )]
         public async Task BadTranslate20(RestMessage Msg)
         {
             await Bot.Library.Commands.DoMessageBadTranslate(Msg.Content, 20, Context);
         }
         
-        [MessageCommand("Engikitty Reply",
-            Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel])]
+        [MessageCommand(
+            "Engikitty Reply",
+            Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel],
+            IntegrationTypes = [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall]
+        )]
         public async Task EngikittyReply(RestMessage Msg)
         {
             await Bot.Library.Commands.PromptGroq(Msg.Content, Context);
