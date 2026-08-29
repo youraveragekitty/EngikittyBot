@@ -1,4 +1,7 @@
-﻿namespace Engikitty.Bot.Library
+﻿using Edge_tts_sharp;
+using Edge_tts_sharp.Model;
+
+namespace Engikitty.Bot.Library
 {
     public static class CmdStorage
     {
@@ -58,68 +61,31 @@
             "you should absolutely not call me again", "yes, and somehow that's worse", "no, and somehow that's better",
             "you're playing dangerous games here",
         ];
-
-        public static readonly Dictionary<string, string> KokoroVoices = new()
+        
+        private static readonly List<eVoice> Voices = Edge_tts.GetVoice()
+            .OrderBy(Voice => Voice.ShortName.StartsWith("en-US", StringComparison.OrdinalIgnoreCase) ? 0
+                : Voice.ShortName.StartsWith("en-", StringComparison.OrdinalIgnoreCase) ? 1
+                : 2)
+            .ToList();
+        
+        public static readonly Dictionary<string, eVoice> EdgeVoices =
+            Voices.ToDictionary(Voice => Voice.ShortName, Voice => Voice, StringComparer.OrdinalIgnoreCase);
+        
+        public static readonly Dictionary<string, string> EdgeVoiceNames =
+            Voices.ToDictionary(Voice => Voice.ShortName, Describe, StringComparer.OrdinalIgnoreCase);
+        
+        private static string Describe(eVoice Voice)
         {
-            // American English - Female
-            ["af_heart"] = "Heart",
-            ["af_bella"] = "Bella",
-            ["af_nicole"] = "Nicole",
-            ["af_aoede"] = "Aoede",
-            ["af_kore"] = "Kore",
-            ["af_sarah"] = "Sarah",
-            ["af_nova"] = "Nova",
-            ["af_alloy"] = "Alloy",
-            ["af_sky"] = "Sky",
-            ["af_jessica"] = "Jessica",
-            ["af_river"] = "River",
- 
-            // American English - Male
-            ["am_michael"] = "Michael",
-            ["am_fenrir"] = "Fenrir",
-            ["am_puck"] = "Puck",
-            ["am_adam"] = "Adam",
-            ["am_echo"] = "Echo",
-            ["am_eric"] = "Eric",
-            ["am_liam"] = "Liam",
-            ["am_onyx"] = "Onyx",
-            ["am_santa"] = "Santa",
- 
-            // British English - Female
-            ["bf_emma"] = "Emma",
-            ["bf_isabella"] = "Isabella",
-            ["bf_alice"] = "Alice",
-            ["bf_lily"] = "Lily",
- 
-            // British English - Male
-            ["bm_george"] = "George (UK Male) - authoritative",
-            ["bm_fable"] = "Fable (UK Male) - storyteller, warm",
-            ["bm_lewis"] = "Lewis (UK Male) - confident, articulate",
-            ["bm_daniel"] = "Daniel (UK Male) - professional, clear",
- 
-            // French
-            ["ff_siwis"] = "Siwis (FR Female)",
- 
-            // Italian
-            ["if_sara"] = "Sara (IT Female)",
-            ["im_nicola"] = "Nicola (IT Male)",
- 
-            // Japanese
-            ["jf_alpha"] = "Alpha (JP Female)",
-            ["jf_gongitsune"] = "Gongitsune (JP Female)",
-            ["jf_nezumi"] = "Nezumi (JP Female)",
-            ["jf_tebukuro"] = "Tebukuro (JP Female)",
-            ["jm_kumo"] = "Kumo (JP Male)",
- 
-            // Mandarin Chinese
-            ["zf_xiaoxiao"] = "Xiaoxiao (CN Female)",
-            ["zf_xiaobei"] = "Xiaobei (CN Female)",
-            ["zf_xiaoni"] = "Xiaoni (CN Female)",
-            ["zf_xiaoyi"] = "Xiaoyi (CN Female)",
-            ["zm_yunxi"] = "Yunxi (CN Male)",
-            ["zm_yunjian"] = "Yunjian (CN Male)",
-            ["zm_yunxia"] = "Yunxia (CN Male)",
-            ["zm_yunyang"] = "Yunyang (CN Male)"
-        };
+            string Friendly = Voice.FriendlyName ?? "";
+
+            string Name = Friendly.StartsWith("Microsoft ", StringComparison.Ordinal)
+                ? Friendly[10..].Split(' ')[0]
+                : Voice.ShortName;
+
+            int Dash = Friendly.IndexOf(" - ", StringComparison.Ordinal);
+            string Language = Dash >= 0 ? Friendly[(Dash + 3)..] : Voice.Locale;
+
+            return $"{Name} - {Language}, {Voice.Gender}";
+        }
     }
 }

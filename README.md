@@ -50,3 +50,12 @@ For example, you can use Render to host it, though it is paid unless you use the
 "DISCORD_BOT_TOKEN_ENGIKITTY": the bot's auth token\
 "ENGIKITTY_GROQ_KEY": the API key that will be used for the API
 4. Run the .exe
+
+## About /tts
+
+The `/tts` command speaks through the same read-aloud service Microsoft Edge uses, by way of
+[Edge_tts_sharp](https://github.com/Entity-Now/Edge_tts_sharp). There is no key, no account and
+no quota to set up, so it works the moment the bot starts.
+
+Around 300 voices are on offer across 70-odd languages; start typing a name, a language or a
+country in the `voice` option and the autocomplete will find them. Speed goes from 0.5x to 2x.

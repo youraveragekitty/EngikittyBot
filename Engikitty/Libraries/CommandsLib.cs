@@ -6,9 +6,10 @@
 
 */
 
-using System.Net.Http.Json;
+using System.Security;
 using System.Text.Json.Nodes;
-using Engikitty.Commands;
+using Edge_tts_sharp;
+using Edge_tts_sharp.Model;
 using GroqApiLibrary;
 using LingvaSharp;
 using NetCord;
@@ -248,57 +249,70 @@ namespace Engikitty.Bot.Library
 
         #region TTS
 
-        private static readonly string KokoroUrl =
-            "http://127.0.0.1:5177";
+        // Microsoft Edge's read-aloud service, reached over a WebSocket by Edge_tts_sharp.
+        // It is the same thing the browser uses, so there is no key and no quota to babysit.
+        private static readonly TimeSpan SpeechTimeout = TimeSpan.FromSeconds(60);
 
-        // Kokoro on 2 shared vCores is not fast. A long message can legitimately take
-        // most of a minute to synthesize, so the default 100s timeout is widened.
-        private static readonly HttpClient KokoroClient = new()
-        {
-            Timeout = TimeSpan.FromMinutes(2)
-        };
-
-        public static async Task<byte[]?> SpeakAsync(string Text, string Voice = "af_heart",
+        public static async Task<byte[]?> SpeakAsync(string Text, string Voice = "en-US-JennyNeural",
             float Speed = 1.0f, CancellationToken Token = default)
         {
-            Logger.Log(Voice);
-            
-            if (string.IsNullOrWhiteSpace(Text) || !CmdStorage.KokoroVoices.ContainsKey(Voice))
+            if (string.IsNullOrWhiteSpace(Text))
             {
-                Logger.Warning("Kokoro voice doesn't exist");
-                
+                Logger.Warning("Nothing to speak");
+
                 return null;
             }
+
+            if (!CmdStorage.EdgeVoices.TryGetValue(Voice, out eVoice? Picked))
+            {
+                Logger.Warning("Edge voice doesn't exist");
+
+                return null;
+            }
+
+            PlayOption Option = new()
+            {
+                Text = SecurityElement.Escape(Text),
+                Rate = (int)Math.Round((Math.Clamp(Speed, 0.5f, 2.0f) - 1.0f) * 100.0f),
+            };
 
             try
             {
-                using HttpResponseMessage Response = await KokoroClient.PostAsJsonAsync(
-                    $"{KokoroUrl}/v1/audio/speech", new
-                    {
-                        model = "kokoro",
-                        input = Text,
-                        voice = Voice,
-                        response_format = "mp3",
-                        speed = Math.Clamp(Speed, 0.25f, 2.0f)
-                    }, Token);
-
-                if (!Response.IsSuccessStatusCode)
-                {
-                    Logger.Error($"Kokoro returned {(int)Response.StatusCode} for voice {Voice}");
-
-                    return null;
-                }
-
-                byte[] Audio = await Response.Content.ReadAsByteArrayAsync(Token);
-
-                return Audio.Length > 0 ? Audio : null;
+                return await InvokeAsync(Option, Picked, Token);
             }
-            catch (Exception WentWrong) when (WentWrong is HttpRequestException or TaskCanceledException)
+            catch (TimeoutException)
             {
-                Logger.Error("Kokoro request failed:\n\n" + WentWrong);
+                Logger.Error($"Edge TTS timed out for voice {Voice}");
 
                 return null;
             }
+            catch (Exception WentWrong) when (WentWrong is not OperationCanceledException)
+            {
+                Logger.Error("Edge TTS request failed:\n\n" + WentWrong);
+
+                return null;
+            }
+        }
+        
+        private static async Task<byte[]?> InvokeAsync(PlayOption Option, eVoice Voice, CancellationToken Token)
+        {
+            TaskCompletionSource<byte[]> Finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    Edge_tts.Invoke(Option, Voice, Audio => Finished.TrySetResult(Audio.ToArray()));
+                }
+                catch (Exception WentWrong)
+                {
+                    Finished.TrySetException(WentWrong);
+                }
+            }, Token);
+            
+            byte[] Result = await Finished.Task.WaitAsync(SpeechTimeout, Token);
+
+            return Result.Length > 0 ? Result : null;
         }
 
         #endregion

@@ -67,9 +67,9 @@ namespace Engikitty.Commands
         public async Task Tts(
             [SlashCommandParameter(Name = "text", Description = "The text to speak", MaxLength = 1024)]
             string Orig,
-            [SlashCommandParameter(Name = "voice", Description = "The voice to speak with", MaxLength = 1024, AutocompleteProviderType = typeof(KokoroVoiceAutocompleteProvider))]
-            string Voice = "af_heart",
-            [SlashCommandParameter(Name = "speed", Description = "Speech speed, 0.25x to 2x", MinValue = 0.25, MaxValue = 2.0)]
+            [SlashCommandParameter(Name = "voice", Description = "The voice to speak with", MaxLength = 1024, AutocompleteProviderType = typeof(EdgeVoiceAutocompleteProvider))]
+            string Voice = "en-US-JennyNeural",
+            [SlashCommandParameter(Name = "speed", Description = "Speech speed, 0.5x to 2x", MinValue = 0.5, MaxValue = 2.0)]
             double Speed = 1.0)
         {
             byte[]? Audio = await Bot.Library.CmdLib.SpeakAsync(Orig, Voice, (float)Speed);
@@ -123,7 +123,7 @@ namespace Engikitty.Commands
                             new()
                             {
                                 Name = "Voice",
-                                Value = CmdStorage.KokoroVoices.GetValueOrDefault(Voice, Voice),
+                                Value = CmdStorage.EdgeVoiceNames.GetValueOrDefault(Voice, Voice),
                             }
                         },
                         Color = new Color(46, 111, 64),

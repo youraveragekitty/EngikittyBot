@@ -17,7 +17,7 @@ namespace Engikitty.Handlers
     public class UserCooldowns()
     {
         public long GlobalCooldown;
-        public Dictionary<CommandInfo, long> Cooldowns = new();
+        public readonly Dictionary<CommandInfo, long> Cooldowns = new();
     }
     
     /// <summary>

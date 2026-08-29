@@ -3,6 +3,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <OutputPath>Output</OutputPath>
+        <PublishDir>$(MSBuildProjectDirectory)\..\Publish\$(Configuration)\</PublishDir>
         <TargetFramework>net10.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -18,13 +19,16 @@
         <RootNamespace>Engikitty</RootNamespace>
         <AssemblyName>Engikitty</AssemblyName>
         <NoWarn>CS1591</NoWarn>
+        <DisableTransitiveFrameworkReferences>true</DisableTransitiveFrameworkReferences>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="NetCord" Version="1.0.0-beta.17" />
-        <PackageReference Include="NetCord.Services" Version="1.0.0-beta.14" />
+        <PackageReference Include="NetCord" Version="1.0.0-beta.18" />
+        <PackageReference Include="NetCord.Services" Version="1.0.0-beta.18" />
         <PackageReference Include="Microsoft.Data.Sqlite" Version="*" />
         <PackageReference Include="GroqApiLibrary" Version="*" />
+        <PackageReference Include="Edge_tts_sharp" Version="1.1.7" />
+        <PackageReference Include="NAudio.WinForms" Version="2.0.0" ExcludeAssets="all" />
     </ItemGroup>
     
     <ItemGroup>

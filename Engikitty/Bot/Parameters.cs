@@ -34,7 +34,8 @@ namespace Engikitty.Bot
             ["Bad Translate (5 times)"] = new(IsHeavy:true),
             ["Bad Translate (10 times)"] = new(IsHeavy:true),
             ["Bad Translate (20 times)"] = new(IsHeavy:true),
-            ["Engikitty Reply"] = new(IsHeavy:true, CooldownOnThisCommand: 10)
+            ["Engikitty Reply"] = new(IsHeavy:true, CooldownOnThisCommand: 10),
+            ["Translate"] = new(IsHeavy:true, CooldownOnThisCommand: 4),
         };
     }
 }
