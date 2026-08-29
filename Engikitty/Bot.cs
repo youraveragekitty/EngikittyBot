@@ -31,7 +31,10 @@ namespace Engikitty
             if (AUTH == null) throw new ArgumentNullException(nameof(AUTH), "No bot token provided");
 
             GatewayClient BotClient;
-            ApplicationCommandService<ApplicationCommandContext> CommandService;
+            ApplicationCommandService<SlashCommandContext, AutocompleteInteractionContext> SlashCommandService;
+            ApplicationCommandService<MessageCommandContext> MessageCommandService;
+            ApplicationCommandService<UserCommandContext> UserCommandService;
+            ApplicationCommandServiceManager ServiceManager;
 
             Logger.Log("Loading NetCord...");
 
@@ -44,7 +47,14 @@ namespace Engikitty
                 };
 
                 BotClient = new(BotAuthToken, BotClientConfig);
-                CommandService = new();
+                SlashCommandService = new();
+                MessageCommandService = new();
+                UserCommandService = new();
+
+                ServiceManager = new();
+                ServiceManager.AddService(SlashCommandService);
+                ServiceManager.AddService(MessageCommandService);
+                ServiceManager.AddService(UserCommandService);
             }
             catch (Exception WentWrong)
             {
@@ -58,27 +68,46 @@ namespace Engikitty
 
             try
             {
-                CommandService.AddModules(typeof(Program).Assembly);
+                SlashCommandService.AddModules(typeof(Program).Assembly);
+                MessageCommandService.AddModules(typeof(Program).Assembly);
+                UserCommandService.AddModules(typeof(Program).Assembly);
+
+                Logger.Log(
+                    $"Modules loaded — Slash: {SlashCommandService.GetType()}, " +
+                    "modules added successfully to all three services.");
 
                 BotClient.Ready += async _ =>
                 {
-                    await BotClient.UpdatePresenceAsync(new PresenceProperties(UserStatusType.Online)
+                    try
                     {
-                        Activities =
-                        [
-                            new UserActivityProperties("gay", UserActivityType.Custom)
-                            {
-                                State = "i am so i am",
-                            }
-                        ]
-                    });
+                        Logger.Log("Ready event fired. Updating presence...");
 
-                    IReadOnlyList<ApplicationCommand> Registered =
-                        await CommandService.RegisterCommandsAsync(BotClient.Rest, BotClient.Id);
+                        await BotClient.UpdatePresenceAsync(new PresenceProperties(UserStatusType.Online)
+                        {
+                            Activities =
+                            [
+                                new UserActivityProperties("gay", UserActivityType.Custom)
+                                {
+                                    State = "i am so i am",
+                                }
+                            ]
+                        });
 
-                    foreach (ApplicationCommand Cmd in Registered)
+                        Logger.Log("Presence updated. Registering commands...");
+
+                        IReadOnlyList<ApplicationCommand> Registered =
+                            await ServiceManager.RegisterCommandsAsync(BotClient.Rest, BotClient.Id);
+
+                        Logger.Log($"Registration call completed. Command count: {Registered.Count}");
+
+                        foreach (ApplicationCommand Cmd in Registered)
+                        {
+                            Logger.Log($" - {Cmd.Name} (Type: {Cmd.Type})");
+                        }
+                    }
+                    catch (Exception ReadyException)
                     {
-                        Logger.Log($" - {Cmd.Name} (Type: {Cmd.Type})");
+                        Logger.Error("Ready handler threw an exception:\n\n" + ReadyException);
                     }
                 };
 
@@ -88,11 +117,19 @@ namespace Engikitty
                     {
                         try
                         {
-                            if (UserInteraction is not ApplicationCommandInteraction AppCmdInteraction) return;
-                            
-                            CommandInfo CmdInfo = Bot.Library.General.GetCommandInfo(AppCmdInteraction);
+                            if (UserInteraction is AutocompleteInteraction AutoInteraction)
+                            {
+                                await SlashCommandService.ExecuteAutocompleteAsync(
+                                    new AutocompleteInteractionContext(AutoInteraction, BotClient));
+                                return;
+                            }
 
-                            bool IsOnCooldown = await CooldownHandler.DoCooldown(AppCmdInteraction, UserInteraction, CmdInfo);
+                            if (UserInteraction is not ApplicationCommandInteraction AppCmdInteraction) return;
+
+                            CommandInfo CmdInfo = Bot.Library.BotLib.GetCommandInfo(AppCmdInteraction);
+
+                            bool IsOnCooldown =
+                                await CooldownHandler.DoCooldown(AppCmdInteraction, UserInteraction, CmdInfo);
                             if (IsOnCooldown) return;
 
                             await UserInteraction.SendResponseAsync(InteractionCallback.DeferredMessage(
@@ -119,9 +156,23 @@ namespace Engikitty
 
                             await UserHandler.Run(UserInteraction);
 
-                            IExecutionResult Result =
-                                await CommandService.ExecuteAsync(
-                                    new ApplicationCommandContext(AppCmdInteraction, BotClient));
+                            IExecutionResult Result = AppCmdInteraction switch
+                            {
+                                SlashCommandInteraction SlashInteraction =>
+                                    await SlashCommandService.ExecuteAsync(
+                                        new SlashCommandContext(SlashInteraction, BotClient)),
+
+                                MessageCommandInteraction MsgInteraction =>
+                                    await MessageCommandService.ExecuteAsync(
+                                        new MessageCommandContext(MsgInteraction, BotClient)),
+
+                                UserCommandInteraction UserCmdInteraction =>
+                                    await UserCommandService.ExecuteAsync(
+                                        new UserCommandContext(UserCmdInteraction, BotClient)),
+
+                                _ => throw new InvalidOperationException(
+                                    $"Unhandled application command interaction type: {AppCmdInteraction.GetType().Name}")
+                            };
 
                             if (Result is IFailResult FailResult)
                             {
@@ -164,7 +215,7 @@ namespace Engikitty
             Logger.Log("Loaded Engikitty!");
 
             // Done!!
-            
+
             await BotClient.StartAsync();
 
             Logger.Log("Everything loaded successfully :3");

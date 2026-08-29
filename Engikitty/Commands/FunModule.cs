@@ -20,7 +20,7 @@ namespace Engikitty.Commands
         Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel],
         IntegrationTypes = [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall]
     )]
-    public class FunModule : ApplicationCommandModule<ApplicationCommandContext>
+    public class FunModule : ApplicationCommandModule<SlashCommandContext>
     {
         /// <summary>
         /// Bad-translates text a certain amount of times
@@ -34,7 +34,7 @@ namespace Engikitty.Commands
             [SlashCommandParameter(Name = "loops", Description = "Times to loop", MinValue = 1, MaxValue = 100)]
             int Times = 5)
         {
-            await Bot.Library.Commands.DoBadTranslate(Text, Times, Context);
+            await Bot.Library.CmdLib.DoBadTranslate(Text, Times, Context);
         }
 
         /// <summary>
@@ -47,8 +47,8 @@ namespace Engikitty.Commands
             string Question)
         {
             string Answer =
-                Bot.Library.Commands.EightBallResponses[
-                    new Random().Next(Bot.Library.Commands.EightBallResponses.Length)];
+                Bot.Library.CmdStorage.EightBallResponses[
+                    new Random().Next(Bot.Library.CmdStorage.EightBallResponses.Length)];
 
             await Context.Interaction.ModifyResponseAsync(Message =>
             {
@@ -87,7 +87,7 @@ namespace Engikitty.Commands
             [SlashCommandParameter(Name = "question", Description = "The question to ask the 8Ball", MaxLength = 1024)]
             string Question)
         {
-            await Bot.Library.Commands.PromptGroq(Question, Context);
+            await Bot.Library.CmdLib.PromptGroq(Question, Context);
         }
     }
 }

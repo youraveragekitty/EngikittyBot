@@ -14,21 +14,27 @@ namespace Engikitty.Bot
         /// </summary>
         public static readonly Dictionary<string, CommandInfo> Commands = new()
         {
+            // Top
+            
+            ["translate"] = new(CooldownOnThisCommand:4),
+            ["tts"] = new (CooldownOnThisCommand:5),
+            
             // Bot
+            
             ["bot ping"] = new(),
 
             // Fun
 
-            ["fun badtranslate"] = new(false, true),
+            ["fun badtranslate"] = new(IsHeavy:true),
             ["fun 8ball"] = new(),
-            ["fun ask-engikitty"] = new(false, true, CooldownOnThisCommand: 10),
+            ["fun ask-engikitty"] = new(IsHeavy:true, CooldownOnThisCommand: 10),
 
             // Contextual
 
-            ["Bad Translate (5 times)"] = new(false, true),
-            ["Bad Translate (10 times)"] = new(false, true),
-            ["Bad Translate (20 times)"] = new(false, true),
-            ["Engikitty Reply"] = new(false, true, CooldownOnThisCommand: 10)
+            ["Bad Translate (5 times)"] = new(IsHeavy:true),
+            ["Bad Translate (10 times)"] = new(IsHeavy:true),
+            ["Bad Translate (20 times)"] = new(IsHeavy:true),
+            ["Engikitty Reply"] = new(IsHeavy:true, CooldownOnThisCommand: 10)
         };
     }
 }

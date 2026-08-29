@@ -16,10 +16,10 @@ namespace Engikitty.Commands
     /// Command module for every "bot" command
     /// </summary>
     [SlashCommand(
-        "bot", "All sorts of tools regarding engikitty itself",
+        "bot", "All sorts of tools regarding Engikitty itself",
         Contexts = [InteractionContextType.Guild, InteractionContextType.DMChannel],
         IntegrationTypes = [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall])]
-    public class BotModule : ApplicationCommandModule<ApplicationCommandContext>
+    public class BotModule : ApplicationCommandModule<SlashCommandContext>
     {
         /// <summary>
         /// Returns the bot's interaction ping
